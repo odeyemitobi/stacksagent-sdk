@@ -1,4 +1,4 @@
-import { openContractCall, openSignatureRequestPopup } from '@stacks/connect';
+import { request } from '@stacks/connect';
 import { Result, ok, err, NetworkMode } from '@stackagent/types';
 import { getNetworkConfig } from './network';
 
@@ -16,37 +16,30 @@ export const signContractCall = async (
 ): Promise<Result<{ txId: string }, Error>> => {
   const network = getNetworkConfig(options.networkMode || NetworkMode.Mainnet);
   
-  return new Promise((resolve) => {
-    openContractCall({
-      network,
-      contractAddress: options.contractAddress,
-      contractName: options.contractName,
+  try {
+    const result = await request('stx_callContract', {
+      contract: `${options.contractAddress}.${options.contractName}`,
       functionName: options.functionName,
       functionArgs: options.functionArgs,
       postConditions: options.postConditions,
-      onFinish: (data) => {
-        resolve(ok({ txId: data.txId }));
-      },
-      onCancel: () => {
-        resolve(err(new Error('User cancelled transaction signature.')));
-      },
     });
-  });
+    
+    return ok({ txId: (result as any).txid || (result as any).txId || 'unknown_tx_id' });
+  } catch (error) {
+    return err(error instanceof Error ? error : new Error('User cancelled transaction signature or request failed.'));
+  }
 };
 
 export const signMessage = async (message: string, networkMode?: NetworkMode): Promise<Result<{ signature: string }, Error>> => {
   const network = getNetworkConfig(networkMode || NetworkMode.Mainnet);
   
-  return new Promise((resolve) => {
-    openSignatureRequestPopup({
+  try {
+    const result = await request('stx_signMessage', {
       message,
-      network,
-      onFinish: (data) => {
-        resolve(ok({ signature: data.signature }));
-      },
-      onCancel: () => {
-        resolve(err(new Error('User cancelled message signature.')));
-      },
     });
-  });
+    
+    return ok({ signature: (result as any).signature || 'unknown_signature' });
+  } catch (error) {
+    return err(error instanceof Error ? error : new Error('User cancelled message signature or request failed.'));
+  }
 };
