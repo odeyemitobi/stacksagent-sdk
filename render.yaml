@@ -1,0 +1,23 @@
+services:
+  # The NestJS API Backend
+  - type: web
+    name: stackagent-api
+    env: node
+    # Since it's a monorepo, we run commands from the root
+    buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && pnpm turbo run build --filter=api && cd apps/api && npx prisma generate && npx prisma migrate deploy
+    startCommand: cd apps/api && pnpm run start:prod
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: stackagent-db
+          property: connectionString
+      - key: NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS
+        value: ST37H9QBWEG9NEC1Y9MW82YFH8Y4GB3SPTPSN38GG.treasury-vault-v2
+      - key: NODE_ENV
+        value: production
+
+# Managed PostgreSQL Database
+databases:
+  - name: stackagent-db
+    databaseName: stackagent
+    user: stackagent_user
