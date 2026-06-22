@@ -11,8 +11,9 @@
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {
-    "turbo": "latest",
     "prettier": "latest",
+    "puppeteer": "^25.1.0",
+    "turbo": "latest",
     "typescript": "latest"
   },
   "packageManager": "pnpm@9.0.0"
