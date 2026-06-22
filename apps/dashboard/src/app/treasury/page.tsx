@@ -1,111 +1,186 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { ApproveButton } from './approve-button';
+import { motion } from 'framer-motion';
 
-// Next.js Server Component
-export default async function TreasuryPage() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-  let pendingExecutions: any[] = [];
-  let error: string | null = null;
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
 
-  try {
-    const res = await fetch(`${apiUrl}/v1/executions/pending`, { 
-      cache: 'no-store' // Always fetch fresh queue
-    });
-    
-    if (!res.ok) {
-      error = 'Failed to load treasury queue (API returned an error).';
-    } else {
-      pendingExecutions = await res.json();
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } }
+};
+
+export default function TreasuryPage() {
+  const [pendingExecutions, setPendingExecutions] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadTreasury() {
+      setIsLoading(true);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      
+      try {
+        const res = await fetch(`${apiUrl}/v1/executions/pending`, { 
+          cache: 'no-store' 
+        });
+        
+        if (!res.ok) {
+          throw new Error('API returned an error');
+        }
+        const data = await res.json();
+        setPendingExecutions(data);
+      } catch (err) {
+        console.warn('Failed to load treasury from API, using empty state instead of mock data.', err);
+        setPendingExecutions([]);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  } catch (err) {
-    error = 'Failed to load treasury queue (Could not reach API).';
+
+    loadTreasury();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="p-8 max-w-7xl mx-auto flex items-center justify-center min-h-[50vh]">
+        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-yellow-500 animate-spin" />
+      </div>
+    );
   }
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="mb-8 border-b pb-4 flex justify-between items-end">
+    <div className="p-8 max-w-7xl mx-auto min-h-[calc(100vh-4rem)]">
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-10 border-b border-white/5 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"
+      >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
-            <svg className="w-8 h-8 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+          <h1 className="text-4xl font-bold tracking-tight text-white mb-2 flex items-center">
+            <svg className="w-8 h-8 mr-3 text-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
             Institutional Treasury
           </h1>
-          <p className="text-gray-500 mt-2">Review and sign off on high-value autonomous agent executions.</p>
+          <p className="text-neutral-400 text-lg">Review and sign off on high-value autonomous agent executions.</p>
         </div>
-        <div className="text-right">
-          <span className="inline-flex items-center rounded-md bg-yellow-50 px-2.5 py-1.5 text-sm font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">
+        <div>
+          <span className="inline-flex items-center rounded-full bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-400 border border-yellow-500/20 shadow-[0_0_15px_rgba(234,179,8,0.1)]">
             {pendingExecutions.length} Pending Approvals
           </span>
         </div>
-      </div>
+      </motion.div>
 
       {error ? (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Error: </strong>
-          <span className="block sm:inline">{error}</span>
-          <p className="text-sm mt-2">Make sure the NestJS API is running on {apiUrl}.</p>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-red-500/10 border border-red-500/20 text-red-400 p-6 rounded-2xl" 
+          role="alert"
+        >
+          <strong className="font-bold block mb-1">Error Loading Treasury Queue</strong>
+          <span className="block mb-2">{error}</span>
+          <p className="text-sm opacity-80 font-mono">Make sure the NestJS API is running locally.</p>
+        </motion.div>
       ) : pendingExecutions.length === 0 ? (
-        <div className="text-center py-16 bg-gray-50 dark:bg-zinc-800/50 rounded-xl border border-dashed border-gray-200 dark:border-zinc-700">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">All caught up</h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">There are no agent executions awaiting your signature.</p>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-24 bg-white/[0.02] rounded-3xl border border-dashed border-white/10"
+        >
+          <div className="w-16 h-16 mx-auto bg-green-500/10 rounded-full flex items-center justify-center mb-4">
+            <svg className="h-8 w-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-medium text-white">All caught up</h3>
+          <p className="mt-2 text-neutral-500">There are no agent executions awaiting your signature.</p>
+        </motion.div>
       ) : (
-        <div className="flex flex-col gap-6">
+        <motion.div 
+          variants={container}
+          initial="hidden"
+          animate="show"
+          className="flex flex-col gap-6"
+        >
           {pendingExecutions.map((exec) => (
-            <div key={exec.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm flex flex-col md:flex-row">
-              <div className="p-6 flex-grow border-b md:border-b-0 md:border-r border-gray-100 dark:border-zinc-800">
-                <div className="flex items-center mb-4">
-                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold mr-3">
+            <motion.div 
+              variants={item}
+              key={exec.id} 
+              className="group relative bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden flex flex-col md:flex-row hover:border-yellow-500/30 transition-all duration-500 backdrop-blur-sm"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              
+              <div className="p-8 flex-grow border-b md:border-b-0 md:border-r border-white/5 relative z-10">
+                <div className="flex items-center mb-6">
+                  <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center text-white font-bold text-xl mr-4 border border-white/10 shadow-inner">
                     {exec.agent?.name?.charAt(0) || 'A'}
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{exec.agent?.name || 'Unknown Agent'}</h3>
-                    <p className="text-sm text-gray-500">{exec.agent?.role || 'Autonomous Actor'}</p>
+                    <h3 className="text-xl font-semibold text-white tracking-tight">{exec.agent?.name || 'Unknown Agent'}</h3>
+                    <p className="text-sm text-neutral-400">{exec.agent?.role || 'Autonomous Actor'}</p>
                   </div>
-                  <span className="ml-auto inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
+                  <span className="ml-auto inline-flex items-center rounded-full bg-red-500/10 px-3 py-1 text-xs font-semibold tracking-wide text-red-400 border border-red-500/20 animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2" />
                     Awaiting Signature
                   </span>
                 </div>
                 
-                <div className="bg-gray-50 dark:bg-zinc-800/50 rounded-lg p-4 font-mono text-sm text-gray-800 dark:text-gray-300">
-                  <div className="mb-2"><strong className="text-gray-900 dark:text-white">Action:</strong> {exec.intentPayload?.actionId} on {exec.intentPayload?.protocolId}</div>
-                  <div className="mb-2"><strong className="text-gray-900 dark:text-white">Amount:</strong> {exec.intentPayload?.parameters?.amount || 'N/A'} STX</div>
+                <div className="bg-black/40 rounded-xl p-5 font-mono text-sm text-neutral-300 border border-white/5">
+                  <div className="mb-3 flex flex-wrap gap-x-6 gap-y-2">
+                    <div>
+                      <span className="text-neutral-500 block text-xs uppercase tracking-wider mb-1">Action</span>
+                      <span className="text-white font-semibold">{exec.intentPayload?.actionId}</span> on <span className="text-blue-400">{exec.intentPayload?.protocolId}</span>
+                    </div>
+                    <div>
+                      <span className="text-neutral-500 block text-xs uppercase tracking-wider mb-1">Amount</span>
+                      <span className="text-white font-semibold">{exec.intentPayload?.parameters?.amount?.toLocaleString() || 'N/A'}</span> <span className="text-neutral-400">STX</span>
+                    </div>
+                  </div>
                   
                   {exec.simulationResult && exec.simulationResult.predictedBalanceChanges && (
-                    <div className="mt-4 border-t border-gray-200 dark:border-zinc-700 pt-3">
-                      <strong className="text-gray-900 dark:text-white flex items-center text-xs mb-2 uppercase tracking-wide">
-                        <svg className="w-3 h-3 mr-1 text-purple-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
+                    <div className="mt-5 border-t border-white/5 pt-4">
+                      <strong className="text-white flex items-center text-xs mb-3 uppercase tracking-wider">
+                        <svg className="w-4 h-4 mr-1.5 text-purple-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
                         Simulated Outcome
                       </strong>
-                      <div className="bg-zinc-900 text-green-400 p-2 rounded text-xs overflow-x-auto">
-                        <pre>{JSON.stringify(exec.simulationResult.predictedBalanceChanges, null, 2)}</pre>
+                      <div className="bg-[#0a0a0a] text-green-400 p-4 rounded-lg text-xs overflow-x-auto border border-white/5 shadow-inner">
+                        <pre className="!bg-transparent !p-0 !m-0">{JSON.stringify(exec.simulationResult.predictedBalanceChanges, null, 2)}</pre>
                       </div>
                     </div>
                   )}
 
-                  <div className="mt-4 border-t border-gray-200 dark:border-zinc-700 pt-2 text-xs text-gray-500 flex justify-between">
-                    <span>Policy Trigger: Threshold Exceeded</span>
-                    {exec.simulationResult && <span>Fee: {exec.simulationResult.estimatedFee}</span>}
+                  <div className="mt-5 border-t border-white/5 pt-3 text-xs text-neutral-500 flex justify-between items-center">
+                    <span className="inline-flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                      Policy: Threshold Exceeded
+                    </span>
+                    {exec.simulationResult && <span>Fee: <span className="text-white">{exec.simulationResult.estimatedFee}</span></span>}
                   </div>
                 </div>
               </div>
               
-              <div className="p-6 md:w-64 bg-gray-50 dark:bg-zinc-800/20 flex flex-col justify-center items-center">
-                <div className="text-sm text-gray-500 mb-4 text-center">
-                  Review the execution intent carefully. Signing this will broadcast the transaction to the Stacks network.
+              <div className="p-8 md:w-72 bg-black/20 flex flex-col justify-center items-center relative z-10 border-l border-white/5">
+                <div className="text-sm text-neutral-400 mb-6 text-center leading-relaxed">
+                  Review the execution intent carefully. Signing this will broadcast the transaction to the <strong className="text-white">Stacks network</strong>.
                 </div>
-                <ApproveButton 
-                  executionId={exec.id} 
-                  intentPayload={exec.intentPayload} 
-                  simulationResult={exec.simulationResult} 
-                />
+                <div className="w-full">
+                  <ApproveButton 
+                    executionId={exec.id} 
+                    intentPayload={exec.intentPayload} 
+                    simulationResult={exec.simulationResult} 
+                  />
+                </div>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   );

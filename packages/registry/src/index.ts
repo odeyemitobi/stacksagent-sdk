@@ -1,4 +1,5 @@
 export * from './registry';
 export * from './plugin';
 export * from './data/mock-protocols';
-export * from './data/mock-plugins';
+export * from './plugins/alex';
+export * from './plugins/zest';

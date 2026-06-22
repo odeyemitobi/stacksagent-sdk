@@ -1,5 +1,6 @@
 import { Protocol, IPlugin, Result, ok, err } from '@stackagent/types';
-import { mockAlexPlugin, mockZestPlugin } from './data/mock-plugins';
+import { alexPlugin } from './plugins/alex';
+import { zestPlugin } from './plugins/zest';
 
 export class ProtocolRegistry {
   private plugins: Map<string, IPlugin>;
@@ -62,4 +63,4 @@ export class ProtocolRegistry {
 }
 
 // Export a singleton instance pre-loaded with MVP plugins
-export const registry = new ProtocolRegistry([mockAlexPlugin, mockZestPlugin]);
+export const registry = new ProtocolRegistry([alexPlugin, zestPlugin]);

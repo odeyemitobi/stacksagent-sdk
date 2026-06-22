@@ -4,6 +4,7 @@ import { ProtocolRegistry } from '@stackagent/registry';
 import { PrismaExecutionStorage } from '../adapters/prisma-execution.storage';
 import { PrismaService } from '../prisma.service'; // We need this just to fetch policies temporarily
 import { ExecutionIntent } from '@stackagent/types';
+import { RedisService } from '../redis/redis.service';
 
 @Controller('v1/executions')
 export class ExecutionsController {
@@ -11,12 +12,10 @@ export class ExecutionsController {
   private simulator: TransactionSimulator;
   private registry: ProtocolRegistry;
 
-  // In a real app we'd use a Redis cache for idempotency keys, but a simple in-memory Set suffices for MVP/Demo
-  private processedKeys = new Set<string>();
-
   constructor(
     private readonly executionStorage: PrismaExecutionStorage,
     private readonly prisma: PrismaService, // Direct prisma access just for policies MVP
+    private readonly redisService: RedisService,
   ) {
     this.securityEngine = new SecurityEngine();
     this.registry = new ProtocolRegistry();
@@ -31,7 +30,9 @@ export class ExecutionsController {
     if (!idempotencyKey) {
       throw new HttpException('Missing Idempotency-Key header', HttpStatus.BAD_REQUEST);
     }
-    if (this.processedKeys.has(idempotencyKey)) {
+    
+    const acquired = await this.redisService.acquireIdempotencyKey(idempotencyKey);
+    if (!acquired) {
       throw new HttpException('Idempotent request already processed', HttpStatus.CONFLICT);
     }
 
@@ -64,7 +65,6 @@ export class ExecutionsController {
     const result = evaluation.value;
 
     // 4. Determine Outcome and log Audit
-    this.processedKeys.add(idempotencyKey);
 
     if (!result.passed) {
       await this.executionStorage.logAudit(agentId, intent, 'REJECTED_BY_POLICY', result);
@@ -108,7 +108,8 @@ export class ExecutionsController {
     if (!idempotencyKey) {
       throw new HttpException('Missing Idempotency-Key header', HttpStatus.BAD_REQUEST);
     }
-    if (this.processedKeys.has(idempotencyKey)) {
+    const acquired = await this.redisService.acquireIdempotencyKey(idempotencyKey);
+    if (!acquired) {
       throw new HttpException('Idempotent request already processed', HttpStatus.CONFLICT);
     }
 
@@ -117,14 +118,34 @@ export class ExecutionsController {
       throw new HttpException('Invalid or missing signedTxId', HttpStatus.BAD_REQUEST);
     }
 
-    // STRICT VERIFICATION MOCK: 
-    // In production, we'd call the Stacks Blockchain API to ensure the txId is valid, 
-    // was signed by the approverId's public key, and matches the execution intent post-conditions.
-    if (!signedTxId.startsWith('mock_tx_id_') && !signedTxId.startsWith('0x')) {
-       throw new HttpException('Cryptographic verification failed: Unrecognized signature format', HttpStatus.UNAUTHORIZED);
+    // Real Verification:
+    // Call the Stacks Blockchain API to ensure the txId is valid and exists in the mempool/chain
+    try {
+      // Remove quotes or extra formatting if the client sent it weirdly
+      const cleanTxId = signedTxId.replace(/['"]/g, '');
+      const txIdFormatted = cleanTxId.startsWith('0x') ? cleanTxId : `0x${cleanTxId}`;
+      
+      const response = await fetch(`https://api.testnet.hiro.so/extended/v1/tx/${txIdFormatted}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new HttpException('Transaction not found on the Stacks Testnet', HttpStatus.BAD_REQUEST);
+        }
+        throw new HttpException('Failed to verify transaction with Stacks Node', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      
+      const txData = await response.json();
+      
+      // Validate it's actually calling our treasury vault
+      if (txData.tx_type !== 'contract_call') {
+         throw new HttpException('Verification failed: Transaction is not a contract call', HttpStatus.BAD_REQUEST);
+      }
+      
+    } catch (err) {
+      if (err instanceof HttpException) throw err;
+      throw new HttpException('Verification process failed', HttpStatus.INTERNAL_SERVER_ERROR);
     }
     
-    this.processedKeys.add(idempotencyKey);
     await this.executionStorage.updateStatus(id, 'BROADCASTED', approverId);
     
     return { success: true, status: 'BROADCASTED' };

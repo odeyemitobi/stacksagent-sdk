@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 // For MVP, we'll just simulate a successful Stacks wallet signature if it's not fully setup.
 import { signContractCall } from '@stackagent/wallet';
 import { NetworkMode } from '@stackagent/types';
+import { useWalletStore } from '../../store/wallet-store';
 
 interface ApproveButtonProps {
   executionId: string;
@@ -15,24 +16,44 @@ interface ApproveButtonProps {
 
 export function ApproveButton({ executionId, intentPayload, simulationResult }: ApproveButtonProps) {
   const [approving, setApproving] = useState<boolean>(false);
+  const { address } = useWalletStore();
 
   const handleApprove = async () => {
     setApproving(true);
     try {
-      // 1. Prompt Stacks Wallet for Signature
-      // In this Phase 4 MVP, we'll configure a mock contract call based on the intent
-      // We will assume the user has a Stacks Wallet (Leather/Xverse) extension installed.
+      let txId: string;
       
-      let txId = 'mock_tx_id_' + Date.now();
-      
-      // Attempt to invoke real Stacks connect, catch gracefully if wallet not installed
       try {
+         // Use stxCallParams from simulation result if available (produced by registry plugins).
+         // This is the real pipeline: Registry Plugin → Backend → Frontend → Wallet.
+         const callParams = simulationResult?.stxCallParams;
+
+         let contractAddr: string;
+         let contractName: string;
+         let functionName: string;
+         let functionArgs: string[];
+
+         if (callParams) {
+           contractAddr = callParams.contractAddress;
+           contractName = callParams.contractName;
+           functionName = callParams.functionName;
+           functionArgs = callParams.functionArgs || [];
+         } else {
+           // Fallback: use env var for simple transfer-stx calls
+           const fullContractId = process.env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS || 'ST37H9QBWEG9NEC1Y9MW82YFH8Y4GB3SPTPSN38GG.treasury-vault';
+           const parts = fullContractId.split('.');
+           contractAddr = parts[0];
+           contractName = parts[1];
+           functionName = 'transfer-stx';
+           functionArgs = [];
+         }
+         
          const res = await signContractCall({
-           contractAddress: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM', // mock address
-           contractName: 'treasury-vault',
-           functionName: 'execute-approved-intent',
-           functionArgs: [], // would map from intentPayload
-           postConditions: simulationResult?.postConditions || [], // 🚨 Stacks explicit post-conditions rule enforced here
+           contractAddress: contractAddr,
+           contractName: contractName,
+           functionName: functionName,
+           functionArgs: functionArgs,
+           postConditions: simulationResult?.postConditions || [],
            networkMode: NetworkMode.Testnet,
          });
          
@@ -42,8 +63,9 @@ export function ApproveButton({ executionId, intentPayload, simulationResult }: 
            throw res.error;
          }
       } catch (walletErr) {
-         console.warn('Wallet connection failed or skipped, falling back to mock signature for preview:', walletErr);
-         alert('Wallet not detected or user cancelled. Proceeding with Mock Signature for demo purposes.');
+         console.error('Wallet signature failed or was cancelled:', walletErr);
+         alert('Wallet signature failed or was cancelled. Cannot approve execution.');
+         return; // DO NOT fallback to mock. Halt the process.
       }
 
       // Generate a unique idempotency key for this attempt
@@ -59,7 +81,7 @@ export function ApproveButton({ executionId, intentPayload, simulationResult }: 
         },
         body: JSON.stringify({
           signedTxId: txId,
-          approverId: 'human-admin-01' // Mocked auth user id
+          approverId: address || 'unknown_address'
         })
       });
 
@@ -82,7 +104,7 @@ export function ApproveButton({ executionId, intentPayload, simulationResult }: 
     <button
       onClick={handleApprove}
       disabled={approving}
-      className="inline-flex justify-center items-center rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full sm:w-auto"
+      className="inline-flex justify-center items-center rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full sm:w-auto cursor-pointer"
     >
       {approving ? 'Waiting for Signature...' : 'Approve & Sign'}
     </button>

@@ -64,6 +64,16 @@ plan:
     - id: 0
       transactions:
         - emulated-contract-publish:
+            contract-name: executor-trait
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/traits/executor-trait.clar
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: mock-alex-action
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/actions/mock-alex-action.clar
+            clarity-version: 3
+        - emulated-contract-publish:
             contract-name: treasury-vault
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/treasury-vault.clar

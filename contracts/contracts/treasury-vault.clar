@@ -10,6 +10,9 @@
 ;; - [x] trait conformance (N/A for basic vault)
 ;; - [x] integer overflow/underflow checks (N/A for basic STX transfer)
 
+;; --- Traits ---
+(use-trait executor-trait .executor-trait.executor-trait)
+
 ;; --- Constants ---
 (define-constant err-unauthorized (err u401))
 (define-constant err-invalid-amount (err u400))
@@ -45,6 +48,16 @@
     (begin
         (asserts! (is-eq tx-sender (var-get vault-owner)) err-unauthorized)
         (ok (var-set vault-owner new-owner))
+    )
+)
+
+;; @desc Execute an arbitrary DeFi action via the executor trait
+;; @param action The contract implementing the executor-trait
+;; @param amount The amount of STX or param to pass
+(define-public (execute-approved-intent (action <executor-trait>) (amount uint))
+    (begin
+        (asserts! (is-eq tx-sender (var-get vault-owner)) err-unauthorized)
+        (as-contract (contract-call? action execute amount))
     )
 )
 

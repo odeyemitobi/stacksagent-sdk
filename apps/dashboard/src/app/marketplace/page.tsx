@@ -1,5 +1,8 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { CloneButton } from './clone-button';
+import { motion } from 'framer-motion';
 
 // Using types mapped from API
 interface PublishedAgentDto {
@@ -14,82 +17,140 @@ interface PublishedAgentDto {
   downloads: number;
 }
 
-// Next.js Server Component
-export default async function MarketplacePage() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-  let agents: PublishedAgentDto[] = [];
-  let error: string | null = null;
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
 
-  try {
-    const res = await fetch(`${apiUrl}/v1/marketplace/agents`, { 
-      cache: 'no-store' // MVP: always fetch fresh list
-    });
-    
-    if (!res.ok) {
-      error = 'Failed to load marketplace (API returned an error).';
-    } else {
-      const data = await res.json();
-      agents = data.items || [];
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } }
+};
+
+export default function MarketplacePage() {
+  const [agents, setAgents] = useState<PublishedAgentDto[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadAgents() {
+      setIsLoading(true);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      
+      try {
+        const res = await fetch(`${apiUrl}/v1/marketplace/agents`, { 
+          cache: 'no-store' 
+        });
+        
+        if (!res.ok) {
+          throw new Error('API returned an error');
+        }
+        
+        const data = await res.json();
+        setAgents(data.items || []);
+      } catch (err) {
+        console.error('Failed to load marketplace from API:', err);
+        setAgents([]);
+        // We could set an explicit error state here, but clearing the agents 
+        // will show the empty state natively.
+      } finally {
+        setIsLoading(false);
+      }
     }
-  } catch (err) {
-    error = 'Failed to load marketplace (Could not reach API).';
+
+    loadAgents();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="p-8 max-w-7xl mx-auto flex items-center justify-center min-h-[50vh]">
+        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-blue-500 animate-spin" />
+      </div>
+    );
   }
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="mb-8 border-b pb-4">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Agent Marketplace</h1>
-        <p className="text-gray-500 mt-2">Discover and clone specialized AI agents built by the community.</p>
-      </div>
+    <div className="p-8 max-w-7xl mx-auto min-h-[calc(100vh-4rem)]">
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-10 border-b border-white/5 pb-6"
+      >
+        <h1 className="text-4xl font-bold tracking-tight text-white mb-2">Agent Marketplace</h1>
+        <p className="text-neutral-400 text-lg">Discover and clone specialized AI agents built by the community.</p>
+      </motion.div>
 
       {error ? (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Error: </strong>
-          <span className="block sm:inline">{error}</span>
-          <p className="text-sm mt-2">Make sure the NestJS API is running on {apiUrl}.</p>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-red-500/10 border border-red-500/20 text-red-400 p-6 rounded-2xl" 
+          role="alert"
+        >
+          <strong className="font-bold block mb-1">Error Loading Marketplace</strong>
+          <span className="block mb-2">{error}</span>
+          <p className="text-sm opacity-80 font-mono">Make sure the NestJS API is running locally.</p>
+        </motion.div>
       ) : agents.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 dark:bg-zinc-800/50 rounded-xl border border-dashed border-gray-200 dark:border-zinc-700">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">No agents found</h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Be the first to publish an agent to the marketplace!</p>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-24 bg-white/[0.02] rounded-3xl border border-dashed border-white/10"
+        >
+          <h3 className="text-xl font-medium text-white">No agents found</h3>
+          <p className="mt-2 text-neutral-500">Be the first to publish an agent to the marketplace!</p>
+        </motion.div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div 
+          variants={container}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
           {agents.map((agent) => (
-            <div key={agent.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-              <div className="p-6 h-full flex flex-col">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{agent.name}</h3>
-                  <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+            <motion.div 
+              variants={item}
+              key={agent.id} 
+              className="group relative bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden hover:border-white/20 transition-all duration-500 backdrop-blur-sm"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="p-8 h-full flex flex-col relative z-10">
+                <div className="flex justify-between items-start mb-6">
+                  <h3 className="text-xl font-semibold text-white tracking-tight">{agent.name}</h3>
+                  <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-semibold tracking-wide text-blue-400 border border-blue-500/20">
                     {agent.configPayload.role}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 flex-grow">
+                
+                <p className="text-sm text-neutral-400 mb-8 flex-grow leading-relaxed">
                   {agent.description}
                 </p>
                 
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {agent.configPayload.allowedProtocols?.map(protocol => (
-                    <span key={protocol} className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
+                <div className="flex flex-wrap gap-2 mb-8">
+                  {agent.configPayload.allowedProtocols?.map((protocol: string) => (
+                    <span key={protocol} className="inline-flex items-center rounded-lg bg-white/5 px-2.5 py-1.5 text-xs font-medium text-neutral-300 border border-white/10 shadow-sm font-mono">
                       {protocol}
                     </span>
                   ))}
                   {(!agent.configPayload.allowedProtocols || agent.configPayload.allowedProtocols.length === 0) && (
-                    <span className="text-xs text-gray-400 italic">No protocols required</span>
+                    <span className="text-xs text-neutral-600 italic px-1">No protocol dependencies</span>
                   )}
                 </div>
 
-                <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100 dark:border-zinc-800">
-                  <div className="text-sm text-gray-500 flex items-center">
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <div className="flex items-center justify-between mt-auto pt-6 border-t border-white/5">
+                  <div className="text-sm text-neutral-500 flex items-center font-mono">
+                    <svg className="w-4 h-4 mr-1.5 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                     {agent.downloads.toLocaleString()}
                   </div>
                   <CloneButton agentId={agent.id} />
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   );

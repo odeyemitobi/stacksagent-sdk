@@ -9,9 +9,10 @@ import { PrismaAgentStorage } from './adapters/prisma-agent.storage';
 import { PrismaMarketplaceStorage } from './adapters/prisma-marketplace.storage';
 import { PrismaExecutionStorage } from './adapters/prisma-execution.storage';
 import { AgentManager } from '@stackagent/runtime';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
-  imports: [],
+  imports: [RedisModule],
   controllers: [AppController, AgentController, MarketplaceController, ExecutionsController],
   providers: [
     AppService,

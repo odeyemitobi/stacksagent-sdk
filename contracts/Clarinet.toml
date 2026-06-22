@@ -5,8 +5,18 @@ authors = []
 telemetry = false
 cache_dir = '.\.cache'
 requirements = []
-[contracts.treasury-vault]
+[contracts.treasury-vault-v2]
 path = 'contracts/treasury-vault.clar'
+clarity_version = 3
+epoch = 3.1
+
+[contracts.executor-trait]
+path = 'contracts/traits/executor-trait.clar'
+clarity_version = 3
+epoch = 3.1
+
+[contracts.mock-alex-action]
+path = 'contracts/actions/mock-alex-action.clar'
 clarity_version = 3
 epoch = 3.1
 [repl.analysis]

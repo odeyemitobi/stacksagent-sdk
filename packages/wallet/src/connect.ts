@@ -1,4 +1,5 @@
 import { Result, ok, err, WalletState, NetworkMode } from '@stackagent/types';
+import { connect } from '@stacks/connect';
 
 export interface ConnectWalletOptions {
   appName: string;
@@ -7,32 +8,26 @@ export interface ConnectWalletOptions {
 }
 
 /**
- * Initiates the wallet connection flow using @stacks/connect.
- * Uses dynamic import to avoid Turbopack module factory issues on Vercel.
+ * Initiates the wallet connection flow using @stacks/connect v8 API.
+ * Uses the Promise return from connect() directly to get addresses.
  */
 export const connectWallet = async (
   options: ConnectWalletOptions
 ): Promise<Result<WalletState, Error>> => {
-  const mode = options.networkMode || NetworkMode.Mainnet;
-  
   try {
-    const { connect } = await import('@stacks/connect');
-    await connect();
+    const mode = options.networkMode || NetworkMode.Mainnet;
 
-    const provider = (window as any).StacksProvider;
-    if (!provider) {
-       return err(new Error('StacksProvider not found after connection.'));
-    }
-    
-    // Get the address from the provider or the session if available
-    // Due to the abstraction, let's keep it simple for MVP.
+    const response = await connect();
+    const stxAddressInfo = response.addresses.find(a => a.symbol === 'STX') || response.addresses[0];
+
     return ok({
       isConnected: true,
-      address: 'SP_MVP_CONNECTED_ADDRESS', // Placeholder until UserSession is fully integrated
-      publicKey: '0x_MVP_PUBKEY',
+      address: stxAddressInfo?.address || '',
+      publicKey: stxAddressInfo?.publicKey || '',
       networkMode: mode,
     });
   } catch (e) {
     return err(e instanceof Error ? e : new Error('Unknown connection error'));
   }
 };
+

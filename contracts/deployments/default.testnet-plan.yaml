@@ -1,0 +1,32 @@
+---
+id: 0
+name: Testnet deployment
+network: testnet
+stacks-node: "https://api.testnet.hiro.so"
+bitcoin-node: "http://blockstack:blockstacksystem@bitcoind.testnet.stacks.co:18332"
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - contract-publish:
+            contract-name: executor-trait
+            expected-sender: ST37H9QBWEG9NEC1Y9MW82YFH8Y4GB3SPTPSN38GG
+            cost: 2840
+            path: "contracts\\traits\\executor-trait.clar"
+            anchor-block-only: true
+            clarity-version: 3
+        - contract-publish:
+            contract-name: mock-alex-action
+            expected-sender: ST37H9QBWEG9NEC1Y9MW82YFH8Y4GB3SPTPSN38GG
+            cost: 3450
+            path: "contracts\\actions\\mock-alex-action.clar"
+            anchor-block-only: true
+            clarity-version: 3
+        - contract-publish:
+            contract-name: treasury-vault-v2
+            expected-sender: ST37H9QBWEG9NEC1Y9MW82YFH8Y4GB3SPTPSN38GG
+            cost: 25420
+            path: "contracts\\treasury-vault.clar"
+            anchor-block-only: true
+            clarity-version: 3
+      epoch: "3.1"

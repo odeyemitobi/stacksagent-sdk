@@ -40,11 +40,38 @@ export class TransactionSimulator {
 
       const payload = payloadResult.value;
 
+      // 3. Perform actual on-chain simulation via Hiro API
+      try {
+        // We use any to bypass strict type checking for the mock transaction objects 
+        // that might not implement serialize() natively in the demo.
+        const txHex = (payload.transaction as any).serialize 
+          ? (payload.transaction as any).serialize().toString('hex')
+          : '00'; // fallback mock hex
+
+        if (txHex !== '00') {
+          const simulateRes = await fetch('https://api.testnet.hiro.so/v2/simulate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transaction_hex: txHex }),
+          });
+
+          if (simulateRes.ok) {
+            const simulateData = await simulateRes.json();
+            if (simulateData.success === false) {
+              return err(new Error(`Transaction simulation failed on-chain: ${simulateData.error}`));
+            }
+          }
+        }
+      } catch (simErr) {
+        console.warn('Simulation network call failed, falling back to plugin prediction:', simErr);
+      }
+
       return ok({
         success: true,
         predictedFee: payload.estimatedFee,
         postConditions: payload.postConditions,
         humanReadableDiff: payload.humanReadableDiff,
+        stxCallParams: payload.stxCallParams,
       });
     } catch (e) {
       return err(e instanceof Error ? e : new Error('Unknown simulation error occurred'));

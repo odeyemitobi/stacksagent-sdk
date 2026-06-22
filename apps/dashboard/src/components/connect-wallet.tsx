@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { connectWallet } from '@stackagent/wallet';
+import { connect } from '@stacks/connect';
 import { useWalletStore } from '../store/wallet-store';
 import { FaWallet, FaSpinner } from 'react-icons/fa';
 
@@ -16,17 +16,25 @@ export const ConnectWallet = () => {
     }
 
     setIsConnecting(true);
-    const result = await connectWallet({
-      appName: 'StackAgent Dashboard',
-      appIcon: '/favicon.ico',
-    });
 
-    if (result.ok) {
-      setConnection(result.value);
-    } else {
-      console.error('Wallet connection failed:', result.error);
+    try {
+      const response = await connect();
+      
+      const stxAddressInfo = response.addresses.find(a => a.symbol === 'STX') || response.addresses[0];
+      const address = stxAddressInfo?.address || '';
+      const publicKey = stxAddressInfo?.publicKey || '';
+
+      setConnection({
+        isConnected: true,
+        address: address,
+        publicKey: publicKey,
+        networkMode: 'mainnet' as any,
+      });
+    } catch (err) {
+      console.error('Wallet connection failed:', err);
+    } finally {
+      setIsConnecting(false);
     }
-    setIsConnecting(false);
   };
 
   const formatAddress = (addr: string) => {
@@ -37,7 +45,7 @@ export const ConnectWallet = () => {
     <button
       onClick={handleConnect}
       disabled={isConnecting}
-      className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-medium rounded-lg transition-colors border border-neutral-700 disabled:opacity-50"
+      className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-medium rounded-lg transition-colors border border-neutral-700 disabled:opacity-50 cursor-pointer"
     >
       {isConnecting ? (
         <FaSpinner className="animate-spin" />
@@ -50,3 +58,4 @@ export const ConnectWallet = () => {
     </button>
   );
 };
+

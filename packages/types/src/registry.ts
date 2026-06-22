@@ -37,6 +37,13 @@ export interface TransactionPayload {
   estimatedFee: number;
   /** Human-readable state changes predicted by this transaction — only the plugin knows this. */
   humanReadableDiff: StateChangeDiff[];
+  /** Standard parameters to feed into stx_callContract for the frontend */
+  stxCallParams?: {
+    contractAddress: string;
+    contractName: string;
+    functionName: string;
+    functionArgs: string[]; // Serialized CV as strings or principal addresses
+  };
 }
 
 export interface IPlugin {
