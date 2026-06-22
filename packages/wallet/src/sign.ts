@@ -1,6 +1,4 @@
-import { request } from '@stacks/connect';
 import { Result, ok, err, NetworkMode } from '@stackagent/types';
-import { getNetworkConfig } from './network';
 
 export interface SignContractCallOptions {
   contractAddress: string;
@@ -11,12 +9,15 @@ export interface SignContractCallOptions {
   postConditions?: any[];
 }
 
+/**
+ * Signs and submits a contract call transaction.
+ * Uses dynamic import to avoid Turbopack module factory issues on Vercel.
+ */
 export const signContractCall = async (
   options: SignContractCallOptions
 ): Promise<Result<{ txId: string }, Error>> => {
-  const network = getNetworkConfig(options.networkMode || NetworkMode.Mainnet);
-  
   try {
+    const { request } = await import('@stacks/connect');
     const result = await request('stx_callContract', {
       contract: `${options.contractAddress}.${options.contractName}`,
       functionName: options.functionName,
@@ -30,10 +31,13 @@ export const signContractCall = async (
   }
 };
 
+/**
+ * Signs a message using the connected wallet.
+ * Uses dynamic import to avoid Turbopack module factory issues on Vercel.
+ */
 export const signMessage = async (message: string, networkMode?: NetworkMode): Promise<Result<{ signature: string }, Error>> => {
-  const network = getNetworkConfig(networkMode || NetworkMode.Mainnet);
-  
   try {
+    const { request } = await import('@stacks/connect');
     const result = await request('stx_signMessage', {
       message,
     });

@@ -12,7 +12,6 @@
   },
   "devDependencies": {
     "prettier": "latest",
-    "puppeteer": "^25.1.0",
     "turbo": "latest",
     "typescript": "latest"
   },

@@ -1,6 +1,4 @@
-import { connect } from '@stacks/connect';
 import { Result, ok, err, WalletState, NetworkMode } from '@stackagent/types';
-import { getNetworkConfig } from './network';
 
 export interface ConnectWalletOptions {
   appName: string;
@@ -10,6 +8,7 @@ export interface ConnectWalletOptions {
 
 /**
  * Initiates the wallet connection flow using @stacks/connect.
+ * Uses dynamic import to avoid Turbopack module factory issues on Vercel.
  */
 export const connectWallet = async (
   options: ConnectWalletOptions
@@ -17,7 +16,7 @@ export const connectWallet = async (
   const mode = options.networkMode || NetworkMode.Mainnet;
   
   try {
-    // The modern API uses connect() instead of showConnect
+    const { connect } = await import('@stacks/connect');
     await connect();
 
     const provider = (window as any).StacksProvider;

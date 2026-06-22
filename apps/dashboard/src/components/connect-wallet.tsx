@@ -9,8 +9,6 @@ export const ConnectWallet = () => {
   const { isConnected, address, setConnection, disconnect } = useWalletStore();
   const [isConnecting, setIsConnecting] = useState(false);
 
-  console.log('ConnectWallet component loaded - forcing Vercel cache invalidation');
-
   const handleConnect = async () => {
     if (isConnected) {
       disconnect();
