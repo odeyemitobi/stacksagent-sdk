@@ -1,0 +1,1 @@
+export const helloui = () => console.log('Hello from ui');

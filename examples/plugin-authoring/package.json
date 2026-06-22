@@ -1,0 +1,19 @@
+{
+  "name": "@stackagent/example-plugin-authoring",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Example: How to author a custom protocol plugin for StackAgent SDK",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@stackagent/types": "workspace:*",
+    "@stackagent/registry": "workspace:*",
+    "@stacks/transactions": "^7.4.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.9.0"
+  }
+}

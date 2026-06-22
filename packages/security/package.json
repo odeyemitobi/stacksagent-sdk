@@ -1,0 +1,20 @@
+{
+  "name": "@stackagent/security",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@stackagent/types": "workspace:^"
+  },
+  "devDependencies": {
+    "@stackagent/config": "workspace:*",
+    "typescript": "^5.4.5",
+    "vitest": "^4.1.9"
+  }
+}

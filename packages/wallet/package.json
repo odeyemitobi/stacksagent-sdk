@@ -1,0 +1,20 @@
+{
+  "name": "@stackagent/wallet",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@stackagent/types": "workspace:^",
+    "@stacks/connect": "^8.2.6",
+    "@stacks/network": "^7.3.1"
+  },
+  "devDependencies": {
+    "@stackagent/config": "workspace:*",
+    "typescript": "^5.4.5"
+  }
+}

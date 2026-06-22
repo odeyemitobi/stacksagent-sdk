@@ -1,0 +1,23 @@
+{
+  "name": "@stackagent/runtime",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@stackagent/types": "workspace:^",
+    "openai": "^6.44.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@stackagent/config": "workspace:*",
+    "@types/node": "^20",
+    "typescript": "^5.4.5",
+    "vitest": "^4.1.9"
+  }
+}

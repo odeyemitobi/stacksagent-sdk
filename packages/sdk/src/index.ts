@@ -1,0 +1,1 @@
+export const hellosdk = () => console.log('Hello from sdk');

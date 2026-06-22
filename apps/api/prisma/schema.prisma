@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  address   String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  wallets   Wallet[]
+  agents    Agent[]
+  publishedAgents PublishedAgent[]
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  address   String   @unique
+  publicKey String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Agent {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  name        String
+  role        String
+  status      String    @default("IDLE") // IDLE, RUNNING, PAUSED, STOPPED
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime? // Soft delete mandated by AGENTS.md
+
+  executions  Execution[]
+  policies    Policy[]
+  auditLogs   AuditLog[]
+}
+
+model Execution {
+  id               String   @id @default(uuid())
+  agentId          String
+  agent            Agent    @relation(fields: [agentId], references: [id])
+  intentPayload    Json     // Stores the ExecutionIntent
+  simulationResult Json?    // Stores the transaction simulation outcome
+  status           String   // PROPOSED, PENDING_APPROVAL, APPROVED, BROADCASTED, REJECTED, FAILED
+  approvedBy       String?  // The human User ID who signed the approval
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Protocol {
+  id          String   @id // e.g., 'alex'
+  name        String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Policy {
+  id               String    @id @default(uuid())
+  agentId          String
+  agent            Agent     @relation(fields: [agentId], references: [id])
+  type             String    // ALLOWLIST, DENYLIST, SPENDING_LIMIT
+  parameters       Json
+  targetActionId   String?
+  targetProtocolId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime? // Soft delete mandated by AGENTS.md
+}
+
+model AuditLog {
+  id               String   @id @default(uuid())
+  agentId          String
+  agent            Agent    @relation(fields: [agentId], references: [id])
+  actorId          String
+  intent           Json     // ExecutionIntent payload
+  policyEvaluation Json?    // Result of the Policy Engine check
+  outcome          String   // REJECTED_BY_POLICY, PENDING, BROADCASTED
+  createdAt        DateTime @default(now()) // Immutable ledger (No updatedAt/deletedAt)
+}
+
+model PublishedAgent {
+  id            String    @id @default(uuid())
+  authorId      String
+  author        User      @relation(fields: [authorId], references: [id])
+  name          String
+  description   String
+  configPayload Json      // Stores the generic AgentConfig (role, prompt, protocols)
+  downloads     Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? // Soft delete mandated by AGENTS.md
+}

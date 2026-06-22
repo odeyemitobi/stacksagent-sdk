@@ -1,0 +1,16 @@
+{
+  "name": "@stackagent/example-agent-creation",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "tsx index.ts"
+  },
+  "dependencies": {
+    "@stackagent/runtime": "workspace:*",
+    "@stackagent/types": "workspace:*",
+    "@stackagent/wallet": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.1"
+  }
+}
