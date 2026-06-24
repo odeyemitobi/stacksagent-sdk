@@ -242,15 +242,12 @@ importers:
 
   examples/agent-creation:
     dependencies:
-      '@stackagent/runtime':
+      '@stackagent/sdk':
         specifier: workspace:*
-        version: link:../../packages/runtime
+        version: link:../../packages/sdk
       '@stackagent/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@stackagent/wallet':
-        specifier: workspace:*
-        version: link:../../packages/wallet
     devDependencies:
       tsx:
         specifier: ^4.7.1
@@ -352,6 +349,9 @@ importers:
       '@stackagent/runtime':
         specifier: workspace:*
         version: link:../runtime
+      '@stackagent/security':
+        specifier: workspace:*
+        version: link:../security
       '@stackagent/types':
         specifier: workspace:*
         version: link:../types
@@ -365,6 +365,9 @@ importers:
       typescript:
         specifier: ^5.4.5
         version: 5.9.3
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.9(@types/node@24.13.2)(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.48.0)(tsx@4.22.4))
 
   packages/security:
     dependencies:

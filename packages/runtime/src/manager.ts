@@ -60,8 +60,8 @@ export class AgentManager {
         return err(new Error(`Agent with ID '${id}' not found.`));
       }
       // Re-instantiate based on state
-      agent = new Agent(state.config, state.id); 
-      // (Assuming Agent constructor can optionally take an ID, we might need to patch agent.ts)
+      agent = new Agent(state.config, state.id);
+      agent.restoreFromState(state);
       this.activeAgents.set(id, agent);
     }
     return ok(agent);

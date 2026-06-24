@@ -1,34 +1,37 @@
 'use client';
 
 import React, { useState } from 'react';
-import { connect } from '@stacks/connect';
+import { connectWallet } from '@stackagent/wallet';
 import { useWalletStore } from '../store/wallet-store';
 import { FaWallet, FaSpinner } from 'react-icons/fa';
+import { NetworkMode } from '@stackagent/types';
+
+const DEFAULT_NETWORK =
+  (process.env.NEXT_PUBLIC_STACKS_NETWORK as NetworkMode | undefined) ?? NetworkMode.Testnet;
 
 export const ConnectWallet = () => {
-  const { isConnected, address, setConnection, disconnect } = useWalletStore();
+  const { isConnected, address, setConnection } = useWalletStore();
   const [isConnecting, setIsConnecting] = useState(false);
 
   const handleConnect = async () => {
-    if (isConnected) {
-      disconnect();
-      return;
-    }
-
     setIsConnecting(true);
 
     try {
-      const response = await connect();
-      
-      const stxAddressInfo = response.addresses.find(a => a.symbol === 'STX') || response.addresses[0];
-      const address = stxAddressInfo?.address || '';
-      const publicKey = stxAddressInfo?.publicKey || '';
+      const result = await connectWallet({
+        appName: 'StackAgent SDK',
+        appIcon: `${typeof window !== 'undefined' ? window.location.origin : ''}/favicon.ico`,
+        networkMode: DEFAULT_NETWORK,
+      });
+
+      if (!result.ok) {
+        throw result.error;
+      }
 
       setConnection({
         isConnected: true,
-        address: address,
-        publicKey: publicKey,
-        networkMode: 'mainnet' as any,
+        address: result.value.address,
+        publicKey: result.value.publicKey,
+        networkMode: result.value.networkMode,
       });
     } catch (err) {
       console.error('Wallet connection failed:', err);
@@ -41,21 +44,32 @@ export const ConnectWallet = () => {
     return `${addr.substring(0, 4)}...${addr.substring(addr.length - 4)}`;
   };
 
+  if (isConnected && address) {
+    return (
+      <div
+        className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white font-medium rounded-lg border border-neutral-700"
+        title={address}
+        aria-label={`Connected wallet ${address}`}
+      >
+        <FaWallet className="text-green-400" aria-hidden="true" />
+        <span className="font-mono text-sm">{formatAddress(address)}</span>
+      </div>
+    );
+  }
+
   return (
     <button
+      type="button"
       onClick={handleConnect}
       disabled={isConnecting}
       className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-medium rounded-lg transition-colors border border-neutral-700 disabled:opacity-50 cursor-pointer"
     >
       {isConnecting ? (
-        <FaSpinner className="animate-spin" />
+        <FaSpinner className="animate-spin" aria-hidden="true" />
       ) : (
-        <FaWallet />
+        <FaWallet aria-hidden="true" />
       )}
-      <span>
-        {isConnecting ? 'Connecting...' : isConnected && address ? formatAddress(address) : 'Connect Wallet'}
-      </span>
+      <span>{isConnecting ? 'Connecting...' : 'Connect Wallet'}</span>
     </button>
   );
 };
-

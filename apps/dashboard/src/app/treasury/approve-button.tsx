@@ -1,22 +1,24 @@
 'use client';
 
 import React, { useState } from 'react';
-// In a real app we'd use the wallet package, but since we're in the Next.js app 
-// and @stackagent/wallet is a workspace package, we can import it directly.
-// For MVP, we'll just simulate a successful Stacks wallet signature if it's not fully setup.
 import { signContractCall } from '@stackagent/wallet';
 import { NetworkMode } from '@stackagent/types';
 import { useWalletStore } from '../../store/wallet-store';
+import { fetchJson, SimulationResultPayload } from '@/lib/api';
 
 interface ApproveButtonProps {
   executionId: string;
-  intentPayload: any;
-  simulationResult?: any;
+  simulationResult?: SimulationResultPayload;
 }
 
-export function ApproveButton({ executionId, intentPayload, simulationResult }: ApproveButtonProps) {
+export function ApproveButton({ executionId, simulationResult }: ApproveButtonProps) {
   const [approving, setApproving] = useState<boolean>(false);
-  const { address } = useWalletStore();
+  const { address, networkMode } = useWalletStore();
+
+  const stacksNetwork =
+    networkMode ??
+    (process.env.NEXT_PUBLIC_STACKS_NETWORK as NetworkMode | undefined) ??
+    NetworkMode.Testnet;
 
   const handleApprove = async () => {
     setApproving(true);
@@ -40,7 +42,7 @@ export function ApproveButton({ executionId, intentPayload, simulationResult }: 
            functionArgs = callParams.functionArgs || [];
          } else {
            // Fallback: use env var for simple transfer-stx calls
-           const fullContractId = process.env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS || 'ST37H9QBWEG9NEC1Y9MW82YFH8Y4GB3SPTPSN38GG.treasury-vault';
+           const fullContractId = process.env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS || 'ST37H9QBWEG9NEC1Y9MW82YFH8Y4GB3SPTPSN38GG.treasury-vault-v2';
            const parts = fullContractId.split('.');
            contractAddr = parts[0];
            contractName = parts[1];
@@ -54,7 +56,7 @@ export function ApproveButton({ executionId, intentPayload, simulationResult }: 
            functionName: functionName,
            functionArgs: functionArgs,
            postConditions: simulationResult?.postConditions || [],
-           networkMode: NetworkMode.Testnet,
+           networkMode: stacksNetwork,
          });
          
          if (res.ok) {
@@ -71,28 +73,19 @@ export function ApproveButton({ executionId, intentPayload, simulationResult }: 
       // Generate a unique idempotency key for this attempt
       const idempotencyKey = `appr_${executionId}_${Date.now()}`;
 
-      // 2. Submit the signature to the backend to complete the Execution
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${apiUrl}/v1/executions/${executionId}/approve`, {
+      await fetchJson<{ success: boolean; status: string }>(`/v1/executions/${executionId}/approve`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
           'idempotency-key': idempotencyKey,
         },
         body: JSON.stringify({
           signedTxId: txId,
-          approverId: address || 'unknown_address'
-        })
+          approverId: address || 'unknown_address',
+        }),
       });
 
-      if (response && response.ok) {
-        alert('Execution Approved and Broadcasted Successfully!');
-        // Refresh page to clear from queue
-        window.location.reload();
-      } else {
-        const errorData = await response.json();
-        alert(`Failed to update backend with approval: ${errorData.message || 'Unknown error'}`);
-      }
+      alert('Execution Approved and Broadcasted Successfully!');
+      window.location.reload();
     } catch (err) {
       alert('An error occurred during approval.');
     } finally {

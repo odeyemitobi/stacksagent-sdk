@@ -40,6 +40,14 @@ export class Agent {
     return { ...this.state };
   }
 
+  /** Restores persisted runtime state after hydration from storage. */
+  public restoreFromState(state: AgentState): void {
+    this.state = {
+      ...state,
+      config: { ...state.config },
+    };
+  }
+
   public start(): void {
     if (this.state.status === 'RUNNING') return;
     this.updateStatus('RUNNING');

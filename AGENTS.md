@@ -457,10 +457,10 @@ Core tables: `users`, `wallets`, `agents`, `executions`, `protocols`,
 
 | Phase | Scope | Status |
 |---|---|---|
-| Phase 1 | SDK + Registry + Runtime | ✅ COMPLETE |
-| Phase 2 | Plugin System | ✅ COMPLETE |
-| Phase 3 | Agent Marketplace | ✅ COMPLETE |
-| Phase 4 | Institutional Treasury Automation | ✅ COMPLETE |
+| Phase 1 | SDK + Registry + Runtime | 🟡 MVP — core packages functional; SDK beta shipped |
+| Phase 2 | Plugin System | 🟡 MVP — ALEX/Zest plugins + BasePlugin authoring |
+| Phase 3 | Agent Marketplace | 🟡 MVP — publish/clone via API + dashboard |
+| Phase 4 | Institutional Treasury Automation | 🟡 MVP — approval queue + testnet vault demo |
 | Phase 5 | Smart Contracts (Clarity treasury vault) | IN PROGRESS |
 
 We are building Phase 5. Code, APIs, and database schemas should not

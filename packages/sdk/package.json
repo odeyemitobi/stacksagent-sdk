@@ -1,21 +1,24 @@
 {
   "name": "@stackagent/sdk",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "lint": "eslint src/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@stackagent/runtime": "workspace:*",
     "@stackagent/registry": "workspace:*",
     "@stackagent/wallet": "workspace:*",
+    "@stackagent/security": "workspace:*",
     "@stackagent/types": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.4.5",
-    "@stackagent/config": "workspace:*"
+    "@stackagent/config": "workspace:*",
+    "vitest": "^4.1.9"
   }
 }

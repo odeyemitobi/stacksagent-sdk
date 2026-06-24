@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApproveButton } from './approve-button';
 import { motion } from 'framer-motion';
+import { fetchJson, PendingExecutionsResponse, formatApiError } from '@/lib/api';
 
 const container = {
   hidden: { opacity: 0 },
@@ -18,27 +19,20 @@ const item = {
 };
 
 export default function TreasuryPage() {
-  const [pendingExecutions, setPendingExecutions] = useState<any[]>([]);
+  const [pendingExecutions, setPendingExecutions] = useState<PendingExecutionsResponse['items']>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadTreasury() {
       setIsLoading(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      
+      setError(null);
+
       try {
-        const res = await fetch(`${apiUrl}/v1/executions/pending`, { 
-          cache: 'no-store' 
-        });
-        
-        if (!res.ok) {
-          throw new Error('API returned an error');
-        }
-        const data = await res.json();
-        setPendingExecutions(data);
+        const data = await fetchJson<PendingExecutionsResponse>('/v1/executions/pending');
+        setPendingExecutions(data.items ?? []);
       } catch (err) {
-        console.warn('Failed to load treasury from API, using empty state instead of mock data.', err);
+        setError(formatApiError(err));
         setPendingExecutions([]);
       } finally {
         setIsLoading(false);
@@ -86,7 +80,10 @@ export default function TreasuryPage() {
         >
           <strong className="font-bold block mb-1">Error Loading Treasury Queue</strong>
           <span className="block mb-2">{error}</span>
-          <p className="text-sm opacity-80 font-mono">Make sure the NestJS API is running locally.</p>
+          <p className="text-sm opacity-80 font-mono">
+            Ensure PostgreSQL is running (<code>docker compose up -d</code>) and the API is started (
+            <code>pnpm --filter api start:dev</code>).
+          </p>
         </motion.div>
       ) : pendingExecutions.length === 0 ? (
         <motion.div 
@@ -144,24 +141,22 @@ export default function TreasuryPage() {
                     </div>
                   </div>
                   
-                  {exec.simulationResult && exec.simulationResult.predictedBalanceChanges && (
+                  {exec.simulationResult?.humanReadableDiff && exec.simulationResult.humanReadableDiff.length > 0 && (
                     <div className="mt-5 border-t border-white/5 pt-4">
                       <strong className="text-white flex items-center text-xs mb-3 uppercase tracking-wider">
-                        <svg className="w-4 h-4 mr-1.5 text-purple-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
                         Simulated Outcome
                       </strong>
                       <div className="bg-[#0a0a0a] text-green-400 p-4 rounded-lg text-xs overflow-x-auto border border-white/5 shadow-inner">
-                        <pre className="!bg-transparent !p-0 !m-0">{JSON.stringify(exec.simulationResult.predictedBalanceChanges, null, 2)}</pre>
+                        <pre className="!bg-transparent !p-0 !m-0">{JSON.stringify(exec.simulationResult.humanReadableDiff, null, 2)}</pre>
                       </div>
                     </div>
                   )}
 
                   <div className="mt-5 border-t border-white/5 pt-3 text-xs text-neutral-500 flex justify-between items-center">
                     <span className="inline-flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                       Policy: Threshold Exceeded
                     </span>
-                    {exec.simulationResult && <span>Fee: <span className="text-white">{exec.simulationResult.estimatedFee}</span></span>}
+                    {exec.simulationResult && <span>Fee: <span className="text-white">{exec.simulationResult.predictedFee}</span> microSTX</span>}
                   </div>
                 </div>
               </div>
@@ -173,7 +168,6 @@ export default function TreasuryPage() {
                 <div className="w-full">
                   <ApproveButton 
                     executionId={exec.id} 
-                    intentPayload={exec.intentPayload} 
                     simulationResult={exec.simulationResult} 
                   />
                 </div>

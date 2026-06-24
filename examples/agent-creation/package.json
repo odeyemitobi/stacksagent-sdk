@@ -6,9 +6,8 @@
     "start": "tsx index.ts"
   },
   "dependencies": {
-    "@stackagent/runtime": "workspace:*",
-    "@stackagent/types": "workspace:*",
-    "@stackagent/wallet": "workspace:*"
+    "@stackagent/sdk": "workspace:*",
+    "@stackagent/types": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.7.1"

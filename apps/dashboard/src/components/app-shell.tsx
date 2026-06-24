@@ -80,38 +80,30 @@ export function AppShell({ children }: AppShellProps) {
               const Icon = item.icon;
               return (
                 <li key={item.name}>
-                  {item.disabled ? (
-                    <div className="group flex items-center gap-x-3 rounded-xl p-2.5 text-sm font-medium leading-6 text-neutral-600 cursor-not-allowed">
-                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      {item.name}
-                      <span className="ml-auto text-[9px] uppercase tracking-widest font-bold border border-white/5 px-2 py-0.5 rounded-full text-neutral-500 bg-white/[0.02]">Soon</span>
-                    </div>
-                  ) : (
-                    <Link
-                      href={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`
-                        relative group flex items-center gap-x-3 rounded-xl p-2.5 text-sm font-medium leading-6 transition-all duration-300
-                        ${isActive 
-                          ? 'text-white' 
-                          : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
-                        }
-                      `}
-                    >
-                      {isActive && (
-                        <motion.div 
-                          layoutId="sidebar-active" 
-                          className="absolute inset-0 bg-white/10 border border-white/10 rounded-xl"
-                          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        />
-                      )}
-                      <Icon 
-                        className={`h-4 w-4 shrink-0 transition-colors relative z-10 ${isActive ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'text-neutral-500 group-hover:text-neutral-300'}`} 
-                        aria-hidden="true" 
+                  <Link
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`
+                      relative group flex items-center gap-x-3 rounded-xl p-2.5 text-sm font-medium leading-6 transition-all duration-300
+                      ${isActive 
+                        ? 'text-white' 
+                        : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
+                      }
+                    `}
+                  >
+                    {isActive && (
+                      <motion.div 
+                        layoutId="sidebar-active" 
+                        className="absolute inset-0 bg-white/10 border border-white/10 rounded-xl"
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
                       />
-                      <span className="relative z-10">{item.name}</span>
-                    </Link>
-                  )}
+                    )}
+                    <Icon 
+                      className={`h-4 w-4 shrink-0 transition-colors relative z-10 ${isActive ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'text-neutral-500 group-hover:text-neutral-300'}`} 
+                      aria-hidden="true" 
+                    />
+                    <span className="relative z-10">{item.name}</span>
+                  </Link>
                 </li>
               );
             })}
@@ -119,12 +111,13 @@ export function AppShell({ children }: AppShellProps) {
           
           {isConnected && (
             <div className="mt-auto pt-4 border-t border-white/5">
-              <button 
+              <button
+                type="button"
                 onClick={disconnect}
                 className="w-full group flex items-center gap-x-3 rounded-xl p-2.5 text-sm font-medium leading-6 text-neutral-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300 cursor-pointer"
               >
                 <FaSignOutAlt className="h-4 w-4 shrink-0 transition-colors group-hover:text-red-400" aria-hidden="true" />
-                Disconnect
+                Log out
               </button>
             </div>
           )}
@@ -149,6 +142,9 @@ export function AppShell({ children }: AppShellProps) {
           </button>
           
           <div className="flex flex-1 justify-end gap-x-4 self-stretch lg:gap-x-6 items-center relative z-10">
+            <span className="hidden sm:inline-flex items-center rounded-full bg-orange-500/10 px-3 py-1 text-xs font-semibold text-orange-400 border border-orange-500/20 uppercase tracking-wider">
+              {process.env.NEXT_PUBLIC_STACKS_NETWORK ?? 'testnet'}
+            </span>
             <ConnectWallet />
           </div>
         </div>

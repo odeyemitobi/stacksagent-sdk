@@ -51,14 +51,23 @@ export class PrismaExecutionStorage {
     });
   }
 
-  async logAudit(agentId: string, intent: any, outcome: string, policyEvaluation?: any) {
+  async logAudit(
+    agentId: string,
+    intent: unknown,
+    outcome: string,
+    policyEvaluation?: unknown,
+    simulationResult?: unknown,
+  ) {
     return this.prisma.auditLog.create({
       data: {
         agentId,
-        actorId: 'agent', // The system actor proposing
-        intent,
+        actorId: 'agent',
+        intent: intent as object,
         outcome,
-        policyEvaluation: policyEvaluation || {},
+        policyEvaluation: {
+          ...(typeof policyEvaluation === 'object' && policyEvaluation !== null ? policyEvaluation : {}),
+          ...(simulationResult !== undefined ? { simulationResult } : {}),
+        } as object,
       },
     });
   }

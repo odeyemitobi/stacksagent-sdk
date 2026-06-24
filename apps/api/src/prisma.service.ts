@@ -1,6 +1,5 @@
-// @ts-nocheck
+// @ts-nocheck — PrismaClient types require `pnpm --filter api exec prisma generate`
 import { Injectable, OnModuleInit } from '@nestjs/common';
-// @ts-ignore - PrismaClient is missing until 'npx prisma generate' runs successfully
 import { PrismaClient } from '@prisma/client';
 
 @Injectable()

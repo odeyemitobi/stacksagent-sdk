@@ -74,7 +74,7 @@ plan:
             path: contracts/actions/mock-alex-action.clar
             clarity-version: 3
         - emulated-contract-publish:
-            contract-name: treasury-vault
+            contract-name: treasury-vault-v2
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/treasury-vault.clar
             clarity-version: 3

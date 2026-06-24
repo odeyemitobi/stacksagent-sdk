@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface CloneButtonProps {
   agentId: string;
@@ -8,23 +9,27 @@ interface CloneButtonProps {
 
 export function CloneButton({ agentId }: CloneButtonProps) {
   const [cloning, setCloning] = useState<boolean>(false);
+  const router = useRouter();
 
   const handleClone = async () => {
     setCloning(true);
     try {
-      // In production, NEXT_PUBLIC_API_URL should be used
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
       const res = await fetch(`${apiUrl}/v1/marketplace/agents/${agentId}/clone`, {
         method: 'POST',
       });
 
-      if (res && res.ok) {
-        alert('Agent cloned successfully! Check your dashboard.');
+      if (res.ok) {
+        const data = (await res.json()) as { newAgentId?: string };
+        router.push('/agents');
+        if (data.newAgentId) {
+          router.refresh();
+        }
       } else {
         alert('Failed to clone agent.');
       }
-    } catch (err) {
-      alert('Failed to clone agent.');
+    } catch {
+      alert('Failed to clone agent. Is the API running?');
     } finally {
       setCloning(false);
     }

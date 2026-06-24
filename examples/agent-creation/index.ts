@@ -1,43 +1,27 @@
-import { AgentManager } from '@stackagent/runtime';
-import { AgentConfig } from '@stackagent/types';
+import { StackAgentClient } from '@stackagent/sdk';
+import { NetworkMode } from '@stackagent/types';
 
 async function main() {
-  console.log("🚀 StackAgent SDK - Agent Creation Example");
-  console.log("==========================================\n");
+  console.log('🚀 StackAgent SDK — Agent Creation Example');
+  console.log('==========================================\n');
 
-  // 2. Configure the Agent
-  const config: AgentConfig = {
+  const client = new StackAgentClient({ networkMode: NetworkMode.Testnet });
+
+  const config = {
     name: 'Bitcoin DeFi Assistant',
     role: 'Treasury Manager',
     systemPrompt: 'You are a helpful Bitcoin DeFi assistant.',
-    allowedProtocols: ['alex', 'zest']
+    allowedProtocols: ['alex', 'zest'],
   };
 
-  // 3. Start the Orchestrator
-  const manager = new AgentManager();
-  console.log("[*] Started Agent Manager Orchestrator");
+  const agent = await client.createAgent(config);
+  const state = agent.getState();
 
-  // 4. Spawn an Agent
-  const createResult = await manager.createAgent(config);
-  
-  if (!createResult.ok) {
-    console.error("❌ Failed to create agent:", createResult.error.message);
-    process.exit(1);
-  }
-
-  const agentId = createResult.value.getState().id;
-  console.log(`\n✅ Successfully spawned new Agent!`);
-  console.log(`   Agent ID: ${agentId}`);
-
-  // Fetch agent to verify state
-  const agentResult = await manager.getAgent(agentId);
-  if (agentResult.ok) {
-    const agent = agentResult.value;
-    console.log(`   Initial State: ${agent.getState().status}`);
-  }
-
-  console.log("\n(In a real application, you would now call await agent.executeTask('Swap 100 STX...'))");
-  console.log("Done.");
+  console.log(`✅ Successfully spawned new Agent!`);
+  console.log(`   Agent ID: ${state.id}`);
+  console.log(`   Initial State: ${state.status}`);
+  console.log(`\nRegistered protocols: ${client.listProtocols().map((p) => p.id).join(', ')}`);
+  console.log('\nDone.');
 }
 
 main().catch(console.error);

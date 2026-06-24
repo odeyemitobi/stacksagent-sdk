@@ -4,6 +4,9 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useWalletStore } from '../store/wallet-store';
 import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { ApiAgent, fetchJson, PendingExecutionsResponse } from '@/lib/api';
+import { fetchWalletStxBalance, formatStxAmount } from '@/lib/stacks-api';
 
 const ConnectWallet = dynamic(() => import('@/components/connect-wallet').then(mod => mod.ConnectWallet), {
   ssr: false,
@@ -23,10 +26,84 @@ const item = {
 };
 
 export default function Home() {
-  const { isConnected } = useWalletStore();
+  const { isConnected, address, networkMode } = useWalletStore();
+  const [agentCount, setAgentCount] = useState(0);
+  const [runningCount, setRunningCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [stxBalanceMicro, setStxBalanceMicro] = useState<number | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [balanceError, setBalanceError] = useState(false);
+
+  const networkLabel =
+    (networkMode ?? process.env.NEXT_PUBLIC_STACKS_NETWORK ?? 'testnet').toUpperCase();
+
+  useEffect(() => {
+    if (!isConnected) return;
+
+    async function loadStats() {
+      try {
+        const [agents, pending] = await Promise.all([
+          fetchJson<ApiAgent[]>('/v1/agents'),
+          fetchJson<PendingExecutionsResponse>('/v1/executions/pending'),
+        ]);
+        setAgentCount(agents.length);
+        setRunningCount(agents.filter((a) => a.status === 'RUNNING' || a.status === 'IDLE').length);
+        setPendingCount(pending.items?.length ?? 0);
+      } catch {
+        setAgentCount(0);
+        setRunningCount(0);
+        setPendingCount(0);
+      }
+    }
+
+    loadStats();
+  }, [isConnected]);
+
+  useEffect(() => {
+    if (!isConnected || !address) {
+      setStxBalanceMicro(null);
+      setBalanceError(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadBalance() {
+      if (!address) return;
+
+      setBalanceLoading(true);
+      setBalanceError(false);
+
+      try {
+        const microStx = await fetchWalletStxBalance(address, networkMode);
+        if (cancelled) return;
+
+        if (microStx === null) {
+          setBalanceError(true);
+          setStxBalanceMicro(null);
+        } else {
+          setStxBalanceMicro(microStx);
+        }
+      } catch {
+        if (!cancelled) {
+          setBalanceError(true);
+          setStxBalanceMicro(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setBalanceLoading(false);
+        }
+      }
+    }
+
+    loadBalance();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isConnected, address, networkMode]);
 
   if (isConnected) {
-    // Dashboard Overview State
     return (
       <div className="p-8 max-w-7xl mx-auto min-h-[calc(100vh-4rem)]">
         <motion.div 
@@ -46,31 +123,39 @@ export default function Home() {
         >
           <motion.div variants={item} className="relative group overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <h3 className="text-sm font-medium text-neutral-400 mb-2">Total Balance</h3>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold tracking-tight text-white font-mono">14,230.50</span>
-              <span className="text-lg text-blue-400 font-semibold font-mono">STX</span>
-            </div>
-            <div className="mt-4 flex items-center gap-2">
-              <span className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-500/20">
-                ↑ 2.4%
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-neutral-400">Wallet Balance</h3>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-full border border-orange-500/20">
+                {networkLabel}
               </span>
-              <span className="text-xs text-neutral-500">from last week</span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              {balanceLoading ? (
+                <span className="text-4xl font-bold tracking-tight text-neutral-500 font-mono">—</span>
+              ) : balanceError || stxBalanceMicro === null ? (
+                <span className="text-lg font-medium text-neutral-400">Unable to load balance</span>
+              ) : (
+                <>
+                  <span className="text-4xl font-bold tracking-tight text-white font-mono">
+                    {formatStxAmount(stxBalanceMicro)}
+                  </span>
+                  <span className="text-lg text-blue-400 font-semibold font-mono">STX</span>
+                </>
+              )}
+            </div>
+            <div className="mt-4 text-xs text-neutral-500 font-mono truncate">
+              {address ?? 'No address'}
             </div>
           </motion.div>
 
           <motion.div variants={item} className="relative group overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <h3 className="text-sm font-medium text-neutral-400 mb-2">Active Agents</h3>
-            <div className="text-4xl font-bold tracking-tight text-white font-mono">3</div>
+            <div className="text-4xl font-bold tracking-tight text-white font-mono">{agentCount}</div>
             <div className="mt-4 flex items-center gap-3">
               <div className="flex items-center gap-1.5 text-xs text-neutral-400">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                2 yielding
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-                <div className="w-2 h-2 rounded-full bg-neutral-600" />
-                1 idle
+                {runningCount} active
               </div>
             </div>
           </motion.div>
@@ -78,10 +163,10 @@ export default function Home() {
           <motion.div variants={item} className="relative group overflow-hidden rounded-2xl border border-yellow-500/30 bg-black/40 p-6 backdrop-blur-xl shadow-[0_0_30px_rgba(234,179,8,0.1)]">
             <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-transparent" />
             <h3 className="text-sm font-medium text-yellow-500/80 mb-2">Pending Approvals</h3>
-            <div className="text-4xl font-bold tracking-tight text-yellow-500 font-mono">1</div>
+            <div className="text-4xl font-bold tracking-tight text-yellow-500 font-mono">{pendingCount}</div>
             <div className="mt-4">
               <Link href="/treasury" className="text-xs font-semibold text-yellow-400 hover:text-yellow-300 transition-colors flex items-center gap-1">
-                Requires your signature <span>→</span>
+                {pendingCount > 0 ? 'Requires your signature' : 'Treasury queue clear'} <span>→</span>
               </Link>
             </div>
           </motion.div>
@@ -120,34 +205,12 @@ export default function Home() {
 
           <motion.div variants={item} className="rounded-2xl border border-white/10 bg-black/20 overflow-hidden flex flex-col">
             <div className="p-6 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
-              <h3 className="font-semibold text-lg text-white">Recent Activity</h3>
-              <span className="text-xs text-neutral-500">Last 24h</span>
+              <h3 className="font-semibold text-lg text-white">Getting Started</h3>
             </div>
-            <div className="p-6 flex-1">
-              <div className="space-y-6">
-                <div className="relative flex items-start gap-4">
-                  <div className="absolute left-4 top-8 bottom-[-24px] w-px bg-white/10" />
-                  <div className="w-8 h-8 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0 z-10">
-                    <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-white mb-1">Yield Farmer executed strategy</div>
-                    <div className="text-xs text-neutral-400 mb-2">Deposited <span className="font-mono text-white">500 STX</span> into lending pool</div>
-                    <div className="text-xs text-neutral-600 font-mono">2 hours ago</div>
-                  </div>
-                </div>
-                
-                <div className="relative flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 z-10">
-                    <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-white mb-1">Arbitrage Bot deployed</div>
-                    <div className="text-xs text-neutral-400 mb-2">Agent successfully cloned from marketplace</div>
-                    <div className="text-xs text-neutral-600 font-mono">5 hours ago</div>
-                  </div>
-                </div>
-              </div>
+            <div className="p-6 flex-1 text-sm text-neutral-400 space-y-3">
+              <p>1. Clone an agent from the Marketplace or create one under Your Agents.</p>
+              <p>2. Run <code className="text-neutral-300 font-mono text-xs">pnpm --filter api seed</code> to populate a demo treasury approval.</p>
+              <p>3. Open Treasury to review simulated outcomes and sign with your Stacks wallet.</p>
             </div>
           </motion.div>
         </motion.div>

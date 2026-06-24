@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { CloneButton } from './clone-button';
 import { motion } from 'framer-motion';
+import { fetchJson, formatApiError } from '@/lib/api';
 
 // Using types mapped from API
 interface PublishedAgentDto {
@@ -38,24 +39,14 @@ export default function MarketplacePage() {
   useEffect(() => {
     async function loadAgents() {
       setIsLoading(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      
+      setError(null);
+
       try {
-        const res = await fetch(`${apiUrl}/v1/marketplace/agents`, { 
-          cache: 'no-store' 
-        });
-        
-        if (!res.ok) {
-          throw new Error('API returned an error');
-        }
-        
-        const data = await res.json();
-        setAgents(data.items || []);
+        const data = await fetchJson<{ items: PublishedAgentDto[] }>('/v1/marketplace/agents');
+        setAgents(data.items ?? []);
       } catch (err) {
-        console.error('Failed to load marketplace from API:', err);
+        setError(formatApiError(err));
         setAgents([]);
-        // We could set an explicit error state here, but clearing the agents 
-        // will show the empty state natively.
       } finally {
         setIsLoading(false);
       }
@@ -92,7 +83,9 @@ export default function MarketplacePage() {
         >
           <strong className="font-bold block mb-1">Error Loading Marketplace</strong>
           <span className="block mb-2">{error}</span>
-          <p className="text-sm opacity-80 font-mono">Make sure the NestJS API is running locally.</p>
+          <p className="text-sm opacity-80 font-mono">
+            Ensure the API is running: <code>pnpm --filter api start:dev</code>
+          </p>
         </motion.div>
       ) : agents.length === 0 ? (
         <motion.div 
